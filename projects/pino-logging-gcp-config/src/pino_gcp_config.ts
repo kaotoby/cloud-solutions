@@ -86,7 +86,7 @@ export interface GCPLoggingPinoOptions {
 
   /**
    * Optional GoogleAuth - used to override defaults when detecting
-   * ServiceContext from the environment.
+   * ServiceContext and project ID from the environment.
    */
   auth?: gax.GoogleAuth;
 }
@@ -125,7 +125,7 @@ class GcpLoggingPino {
  */
   async initializeOptions(options?: GCPLoggingPinoOptions) {
     // Initializing a Cloud Logger for if we need to retrieve the
-    // ServiceContext and projectId automatically from the environment.
+    // ServiceContext and project ID automatically from the environment.
     const cloudLog = new Logging({auth: options?.auth});
 
     if (options?.serviceContext) {
