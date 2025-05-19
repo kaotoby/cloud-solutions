@@ -100,7 +100,7 @@ class GcpLoggingPino {
   traceGoogleCloudProjectId: string | null = null;
 
   constructor(options?: GCPLoggingPinoOptions) {
-    this.initializeOptions(options).then(
+    this.initializeOptionsAsync(options).then(
       () => {
         this.outputDiagnosticEntry();
       },
@@ -123,7 +123,7 @@ class GcpLoggingPino {
  * @throws {Error} If `serviceContext.service` is provided but is not a valid 
  * string or is empty.
  */
-  async initializeOptions(options?: GCPLoggingPinoOptions) {
+  async initializeOptionsAsync(options?: GCPLoggingPinoOptions) {
     // Initializing a Cloud Logger for if we need to retrieve the
     // ServiceContext and project ID automatically from the environment.
     const cloudLog = new Logging({auth: options?.auth});
