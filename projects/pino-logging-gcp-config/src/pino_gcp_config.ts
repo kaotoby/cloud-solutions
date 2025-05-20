@@ -98,6 +98,7 @@ export interface GCPLoggingPinoOptions {
 class GcpLoggingPino {
   serviceContext: ServiceContext | null = null;
   traceGoogleCloudProjectId: string | null = null;
+  cachedLoggingClient: Logging | null = null;
 
   constructor(options?: GCPLoggingPinoOptions) {
     this.initializeOptionsAsync(options).then(
@@ -105,29 +106,25 @@ class GcpLoggingPino {
         this.outputDiagnosticEntry();
       },
       () => {
-        // Ignore any errors raised by resolveOptions.
+        // Ignore any errors raised by initializeOptionsAsync.
         // Errors can occur if not running in a GCP environment.
       }
     );
   }
 
   /**
- * Resolves and initializes the configuration options for the logger.
- *
- * This function sets up the `serviceContext` and `traceGoogleCloudProjectId` 
- * properties for the logger. It uses the provided options or attempts to 
- * auto-detect values from the environment if they are not specified.
- *
- * @param options Configuration options for GCP logging.
- * 
- * @throws {Error} If `serviceContext.service` is provided but is not a valid 
- * string or is empty.
- */
+   * Resolves and initializes the configuration options for the logger.
+   *
+   * This function sets up the `serviceContext` and `traceGoogleCloudProjectId`
+   * properties for the logger. It uses the provided options or attempts to
+   * auto-detect values from the environment if they are not specified.
+   *
+   * @param options Configuration options for GCP logging.
+   *
+   * @throws {Error} If `serviceContext.service` is provided but is not a valid
+   * string or is empty.
+   */
   async initializeOptionsAsync(options?: GCPLoggingPinoOptions) {
-    // Initializing a Cloud Logger for if we need to retrieve the
-    // ServiceContext and project ID automatically from the environment.
-    const cloudLog = new Logging({auth: options?.auth});
-
     if (options?.serviceContext) {
       if (
         typeof options.serviceContext?.service !== 'string' ||
@@ -138,6 +135,7 @@ class GcpLoggingPino {
       this.serviceContext = {...options.serviceContext};
     } else {
       // Using detectServiceContext to asynchronously return the ServiceContext
+      const cloudLog = this.getLoggingClient(options?.auth);
       const serviceContext = await detectServiceContext(cloudLog.auth);
       this.serviceContext = serviceContext;
     }
@@ -146,9 +144,25 @@ class GcpLoggingPino {
       this.traceGoogleCloudProjectId = options.traceGoogleCloudProjectId;
     } else {
       // Using the GoogleAuth to get the projectId from the environment.
+      const cloudLog = this.getLoggingClient(options?.auth);
       const projectId = await cloudLog.auth.getProjectId();
       this.traceGoogleCloudProjectId = projectId;
     }
+  }
+
+  /**
+   * Retrieves the cached Logging client instance or creates a new one if it
+   * does not exist. It can be used to retrieve the ServiceContext and project
+   * ID automatically from the environment.
+   *
+   * @param auth - An optional GoogleAuth instance to authenticate the Logging client.
+   * @returns The Logging client instance, either cached or newly created.
+   */
+  getLoggingClient(auth?: gax.GoogleAuth) {
+    if (!this.cachedLoggingClient) {
+      this.cachedLoggingClient = new Logging({auth: auth});
+    }
+    return this.cachedLoggingClient;
   }
 
   /**
